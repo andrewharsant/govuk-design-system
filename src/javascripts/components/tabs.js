@@ -1,133 +1,132 @@
-import $ from 'jquery'
+import 'govuk-frontend/vendor/polyfills/Function/prototype/bind'
+import 'govuk-frontend/vendor/polyfills/Element'
+import 'govuk-frontend/vendor/polyfills/Element/prototype/classList'
+import 'govuk-frontend/vendor/polyfills/Event'
+import common from 'govuk-frontend/common'
 
-var Tabs = {
+var nodeListForEach = common.nodeListForEach
 
-  // Reset tabs and containers
-  resetTabs: function (id) {
-    // Check if we have an id
-    if (!id) {
-      console.error('id is undefined')
-      return
+var tabsItemClass = 'app-tabs__item'
+var tabsItemCurrentClass = tabsItemClass + '--current'
+var tabsItemJsClass = 'js-tabs__item'
+var headingItemClass = 'app-tabs__heading'
+var headingItemCurrentClass = headingItemClass + '--current'
+var headingItemJsClass = 'js-tabs__heading'
+var tabContainerHiddenClass = 'app-tabs__container--hidden'
+var tabContainerJsClass = '.js-tabs__container'
+var tabContainerNoTabsJsClass = 'js-tabs__container--no-tabs'
+var tabContainerWithCloseBtnClass = 'app-tabs__container--with-close-button'
+var allTabTogglers = '.' + tabsItemJsClass + ' a, ' + '.' + headingItemJsClass + ' a'
+var tabTogglersMarkedOpenClass = '.js-tabs__item--open a'
+var closeButtonClass = 'js-tabs__close'
+
+function AppTabs ($module) {
+  this.$module = $module
+  this.$allTabsContainers = this.$module.querySelectorAll(tabContainerJsClass)
+  this.$tabTriggers = this.$module.querySelectorAll(allTabTogglers)
+  this.$tabContainerCollection = this.$module.querySelectorAll(tabContainerJsClass)
+  this.$tabsTogglersMarkedOpen = this.$module.querySelectorAll(tabTogglersMarkedOpenClass)
+}
+
+AppTabs.prototype.init = function () {
+  if (!this.$module) {
+    return
+  }
+  // reset all tabs
+  this.resetTabs()
+  // add close buttons to each tab
+  this.addCloseBtn()
+  this.$module.addEventListener('click', this.handleClick.bind(this))
+
+  nodeListForEach(this.$tabsTogglersMarkedOpen, function ($tabToggler) {
+    $tabToggler.click()
+  })
+}
+
+AppTabs.prototype.addCloseBtn = function () {
+  // add close button to each tab container except open one with no tab items
+  nodeListForEach(this.$tabContainerCollection, function ($tabContainer) {
+    if (!($tabContainer.classList.contains(tabContainerNoTabsJsClass))) {
+      var $button = document.createElement('button')
+      $button.className = 'app-tabs__close ' + closeButtonClass
+      $button.innerText = 'Close'
+      $tabContainer.appendChild($button)
+      $tabContainer.classList.add(tabContainerWithCloseBtnClass)
     }
+  })
+}
+// expand and collapse functionality
+AppTabs.prototype.activateAndToggle = function (event) {
+  event.preventDefault()
+  var $currentTarget = event.target
+  var $currentTargetSiblings = this.$module.querySelectorAll('[href="' + $currentTarget.hash + '"]')
+  var $tabContent = this.$module.querySelector($currentTarget.hash)
+  var isTargetOpen = $currentTarget.getAttribute('aria-expanded') === 'true'
 
-    var $example = $(id).parent()
-
-    // Reset state
-    $example.find('.js-tabs__item').removeClass('app-tabs__item--current')
-    $example.find('.js-tabs__heading').removeClass('app-tabs__heading--current')
-    $example.find('.js-tabs__item a').attr('aria-expanded', 'false')
-    $example.find('.js-tabs__container').hide().attr('aria-hidden', 'true')
-  },
-
-  // Attach aria attributes on load based on whether tabs have been set to open or closed
-  attachAriaAttributes: function (container) {
-    // Check if we have an id
-    if (!container) {
-      console.error('container is undefined')
-      return
-    }
-
-    var $example = $(container).parent()
-    var isTabOpen = $example.find('.js-tabs__item a').attr('aria-expanded')
-
-    if (!isTabOpen) {
-      $example.find('.js-tabs__item a').attr('aria-expanded', 'false')
-      $example.find('.js-tabs__container').hide().attr('aria-hidden', 'true')
-    } else {
-      $example.find('.js-tabs__item a').attr('aria-expanded', 'true')
-      $example.find('.js-tabs__container').hide().attr('aria-hidden', 'false')
-    }
-  },
-
-  // Activate current tab
-  activateAndToggleCurrentTab: function (id) {
-    // Check if we have an id
-    if (!id) {
-      console.error('id is undefined')
-      return
-    }
-
-    var $target = $('[href="' + id + '"]')
-    var isTargetOpen = $target.attr('aria-expanded') === 'true'
-    var $targetParent = $target.parent()
-
-    if (isTargetOpen) {
-      $target.attr('aria-expanded', 'false')
-      $(id).hide().attr('aria-hidden', 'true')
-
-      if ($targetParent.hasClass('app-tabs__item--current')) {
-        $targetParent.removeClass('app-tabs__item--current')
-      } else if ($targetParent.hasClass('app-tabs__heading--current')) {
-        $targetParent.removeClass('app-tabs__heading--current')
-      }
-    } else {
-      // Reset tabs
-      Tabs.resetTabs(id)
-
-      // Set current active tab for both tabs and accordion links
-      $target.attr('aria-expanded', 'true')
-      $.each($targetParent, function (key, obj) {
-        if ($(obj).hasClass('app-tabs__item')) {
-          $(obj).addClass('app-tabs__item--current')
-        } else if ($(obj).hasClass('app-tabs__heading')) {
-          $(obj).addClass('app-tabs__heading--current')
-        }
-      })
-
-      // Set current container
-      $(id).show().attr('aria-hidden', 'false')
-    }
-  },
-
-  // Tabs mode
-  clickTabItem: function (e) {
-    e.preventDefault()
-
-    // Get tab container ID
-    var id = $(this).attr('href')
-
-    // Activate current tab
-    Tabs.activateAndToggleCurrentTab(id)
-  },
-
-  // Close current container on click
-  clickCloseContainer: function (e) {
-    e.preventDefault()
-
-    // Get tab container ID and save example object
-    var id = $(this).parent().attr('id')
-
-    // Reset tabs
-    Tabs.resetTabs('#' + id)
-  },
-
-  init: function (selector) {
-    // If more than one container
-    var $examples = $(selector)
-    $.each($examples, function (key, obj) {
-      var tabsContainer = $(obj).find('.js-tabs__container')
-      if (tabsContainer.length > 0 && !tabsContainer.hasClass('js-tabs__container--no-tabs')) {
-        // Hide all containers
-        tabsContainer.hide()
-        Tabs.attachAriaAttributes(tabsContainer)
-        // Add close button to each container
-        tabsContainer.append('<button class="app-tabs__close js-tabs__close">Close</button>')
-        tabsContainer.addClass('app-tabs__container--with-close-button')
+  if (isTargetOpen) {
+    $tabContent.classList.add(tabContainerHiddenClass)
+    $tabContent.setAttribute('aria-hidden', 'true')
+    nodeListForEach($currentTargetSiblings, function ($tabTrigger) {
+      $tabTrigger.setAttribute('aria-expanded', 'false')
+      if ($tabTrigger.parentNode.classList.contains(tabsItemCurrentClass)) {
+        $tabTrigger.parentNode.classList.remove(tabsItemCurrentClass)
+      } else if ($tabTrigger.parentNode.classList.contains(headingItemCurrentClass)) {
+        $tabTrigger.parentNode.classList.remove(headingItemCurrentClass)
       }
     })
+  } else {
+    // Reset tabs
+    this.resetTabs()
+    // make current active
+    $tabContent.classList.remove(tabContainerHiddenClass)
+    $tabContent.setAttribute('aria-hidden', 'false')
 
-    // Bind tab item click
-    $('.js-tabs__item a').click(Tabs.clickTabItem)
+    nodeListForEach($currentTargetSiblings, function ($tabTrigger) {
+      $tabTrigger.setAttribute('aria-expanded', 'true')
+      if ($tabTrigger.parentNode.classList.contains(tabsItemClass)) {
+        $tabTrigger.parentNode.classList.add(tabsItemCurrentClass)
+      } else if ($tabTrigger.parentNode.classList.contains(headingItemClass)) {
+        $tabTrigger.parentNode.classList.add(headingItemCurrentClass)
+      }
+    })
+  }
+}
+// reset aria attributes to default and close the tab content container
+AppTabs.prototype.resetTabs = function () {
+  nodeListForEach(this.$allTabsContainers, function ($tabContainer) {
+    if (!$tabContainer.classList.contains(tabContainerNoTabsJsClass)) {
+      $tabContainer.classList.add(tabContainerHiddenClass)
+      $tabContainer.setAttribute('aria-hidden', 'true')
+    }
+  })
 
-    // Bind accordion item click
-    $('.js-tabs__heading a').click(Tabs.clickTabItem)
+  nodeListForEach(this.$tabTriggers, function ($tabTrigger) {
+    $tabTrigger.setAttribute('aria-expanded', 'false')
+    if ($tabTrigger.parentNode.classList.contains(tabsItemCurrentClass)) {
+      $tabTrigger.parentNode.classList.remove(tabsItemCurrentClass)
+    } else if ($tabTrigger.parentNode.classList.contains(headingItemCurrentClass)) {
+      $tabTrigger.parentNode.classList.remove(headingItemCurrentClass)
+    }
+  })
+}
 
-    // Bind close container link
-    $('.js-tabs__close').click(Tabs.clickCloseContainer)
+// Close current container on click
+AppTabs.prototype.clickCloseContainer = function (event) {
+  event.preventDefault()
+  this.resetTabs()
+}
 
-    // Show open containers
-    $('.js-tabs__heading--open a').click()
+AppTabs.prototype.handleClick = function (event) {
+  // toggle and active selected tab and heading (on mobile)
+  if (event.target.parentNode.classList.contains(tabsItemJsClass) ||
+    event.target.parentNode.classList.contains(headingItemJsClass)) {
+    this.activateAndToggle(event)
+  }
+
+  // close button behavior
+  if (event.target.classList.contains(closeButtonClass)) {
+    this.clickCloseContainer(event)
   }
 }
 
-export default Tabs
+export default AppTabs
