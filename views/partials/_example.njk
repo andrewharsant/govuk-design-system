@@ -27,6 +27,7 @@
   </div>
 
   {%- if (multipleTabs) %}
+  <span id="options-{{ exampleId }}"></span>
   <ul class="app-tabs" role="tablist">
     <li class="app-tabs__item js-tabs__item{{ " js-tabs__item--open" if (params.open) }}" role="presentation"><a href="#{{ exampleId }}-html" role="tab" aria-controls="{{ exampleId }}-html" data-track="tab-html">HTML</a></li>
     <li class="app-tabs__item js-tabs__item" role="presentation"><a href="#{{ exampleId }}-nunjucks" role="tab" aria-controls="{{ exampleId }}-nunjucks" data-track="tab-nunjucks">Nunjucks</a></li>
@@ -100,7 +101,7 @@
         html: macroOptionsHTML,
         classes: "app-options",
         attributes:{
-          id: "nunjucks-options-" + exampleId,
+          id: "options-" + exampleId + "-details",
           "data-components": "github-component-arguments"
         }
       })}}
